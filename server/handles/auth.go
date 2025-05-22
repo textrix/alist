@@ -113,6 +113,10 @@ func UpdateCurrent(c *gin.Context) {
 		return
 	}
 	user := c.MustGet("user").(*model.User)
+	if user.IsGuest() {
+		common.ErrorStrResp(c, "Guest user can not update profile", 403)
+		return
+	}
 	user.Username = req.Username
 	if req.Password != "" {
 		user.SetPassword(req.Password)
@@ -176,6 +180,15 @@ func Verify2FA(c *gin.Context) {
 	}
 	user.OtpSecret = req.Secret
 	if err := op.UpdateUser(user); err != nil {
+		common.ErrorResp(c, err, 500)
+	} else {
+		common.SuccessResp(c)
+	}
+}
+
+func LogOut(c *gin.Context) {
+	err := common.InvalidateToken(c.GetHeader("Authorization"))
+	if err != nil {
 		common.ErrorResp(c, err, 500)
 	} else {
 		common.SuccessResp(c)
